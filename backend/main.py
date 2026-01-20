@@ -7,6 +7,7 @@ from qdrant_client.models import PointStruct
 import uuid
 import time
 from dotenv import load_dotenv
+from agents.memory import memory_agent  # <--- IMPORT THIS
 
 # Load Secrets
 load_dotenv()
@@ -104,6 +105,20 @@ async def ingest_intel(
         # Cleanup temp file
         if os.path.exists(temp_filename):
             os.remove(temp_filename)
+
+# --- ENDPOINT 2: RECALL PATTERNS (Uses Memory Agent) ---
+@app.get("/agent/memory")
+def search_memory(query: str):
+    """
+    Search for similar past incidents based on a text query.
+    Example Query: "Fire with chemical smell"
+    """
+    results = memory_agent.recall_patterns(query)
+    
+    if not results:
+        return {"status": "no_matches", "data": []}
+    
+    return {"status": "success", "data": results}
 
 if __name__ == "__main__":
     import uvicorn
