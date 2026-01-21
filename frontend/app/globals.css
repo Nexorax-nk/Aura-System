@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  /* Sci-Fi Color Palette */
+  --background: #050505;
+  --foreground: #e0e0e0;
+  
+  /* Aura Brand Colors */
+  --neon-red: #ff2a2a;
+  --neon-blue: #00f3ff;
+  --panel-bg: rgba(20, 20, 20, 0.9);
+}
+
+/* Tailwind v4 Theme Configuration 
+  This connects your CSS variables to Tailwind classes like 'text-neon-red' 
+*/
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-neon-red: var(--neon-red);
+  --color-neon-blue: var(--neon-blue);
+  --color-panel: var(--panel-bg);
+  
+  /* Custom Font (Optional, keeps it techy) */
+  --font-mono: 'Courier New', Courier, monospace;
+}
+
+/* Global Reset */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  overflow: hidden; /* Prevent scrolling for a fixed dashboard */
+}
+
+/* Custom Scrollbar (Makes it look like a HUD) */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neon-red);
+  border-radius: 0px;
+}
