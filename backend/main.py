@@ -1,20 +1,28 @@
 import os
 import shutil
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from agents.perception import perception_agent
-from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct
 import uuid
 import time
+from typing import List, Any
 from dotenv import load_dotenv
-from agents.memory import memory_agent  # <--- IMPORT THIS
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from pydantic import BaseModel
+from qdrant_client import QdrantClient
+from qdrant_client.models import PointStruct
+
+# --- AGENT IMPORTS ---
+from agents.perception import perception_agent  # Agent 1
+from agents.memory import memory_agent          # Agent 2
+from agents.risk import risk_agent              # Agent 3
+from agents.decision import decision_agent
+from agents.explain import explain_agent
 
 # Load Secrets
 load_dotenv()
 
 app = FastAPI(title="Aura-MAS Command Center")
 
-# Connect to Qdrant Cloud
+# Connect to Qdrant Cloud (Global Connection)
 client = QdrantClient(
     url=os.getenv("QDRANT_URL"),
     api_key=os.getenv("QDRANT_API_KEY")
@@ -23,9 +31,24 @@ client = QdrantClient(
 # Constants
 COLLECTION_NAME = "live_intel"
 
+# --- DATA MODELS ---
+class RiskInput(BaseModel):
+    similar_incidents: List[Any]  # Expects the list returned by Agent 2
+
+class DecisionInput(BaseModel):
+    current_description: str
+    risk_data: dict
+    past_incidents: List[Any]
+
+class ExplainInput(BaseModel):
+    plan: dict
+    risk_data: dict
+    past_incidents: List[Any]
+
+# --- SYSTEM HEALTH CHECK ---
 @app.get("/")
 def health_check():
-    return {"status": "Aura System Online", "agents": 5}
+    return {"status": "Aura System Online", "agents_active": 3}
 
 # --- ENDPOINT 1: INGEST INTEL (Uses Perception Agent) ---
 @app.post("/ingest")
@@ -119,6 +142,41 @@ def search_memory(query: str):
         return {"status": "no_matches", "data": []}
     
     return {"status": "success", "data": results}
+
+# --- ENDPOINT 3: RISK ASSESSMENT (Uses Risk Agent) ---
+@app.post("/agent/risk")
+def assess_risk(data: RiskInput):
+    """
+    Takes the output of Agent 2 (Past Incidents) and calculates Risk Level.
+    """
+    assessment = risk_agent.assess_risk(data.similar_incidents)
+    return {"status": "success", "data": assessment}
+
+# --- ENDPOINT 4: DECISION SUPPORT (Uses Groq) ---
+@app.post("/agent/decision")
+def make_decision(data: DecisionInput):
+    """
+    Synthesizes Intel + Risk + Memory to generate an Action Plan.
+    """
+    plan = decision_agent.generate_plan(
+        data.current_description,
+        data.risk_data,
+        data.past_incidents
+    )
+    return {"status": "success", "data": plan}
+
+# --- ENDPOINT 5: EXPLAINABILITY (Uses Groq) ---
+@app.post("/agent/explain")
+def explain_logic(data: ExplainInput):
+    """
+    Returns the 'Why' behind the decision.
+    """
+    explanation = explain_agent.explain_decision(
+        data.plan,
+        data.risk_data,
+        data.past_incidents
+    )
+    return {"status": "success", "data": explanation}
 
 if __name__ == "__main__":
     import uvicorn
