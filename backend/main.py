@@ -9,6 +9,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
+from fastapi.middleware.cors import CORSMiddleware
 
 # --- AGENT IMPORTS ---
 from agents.perception import perception_agent  # Agent 1
@@ -16,6 +17,17 @@ from agents.memory import memory_agent          # Agent 2
 from agents.risk import risk_agent              # Agent 3
 from agents.decision import decision_agent
 from agents.explain import explain_agent
+
+app = FastAPI(title="Aura-MAS Command Center")
+
+# --- ALLOW FRONTEND CONNECTION (CORS) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all connections (Safe for Hackathon)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load Secrets
 load_dotenv()
